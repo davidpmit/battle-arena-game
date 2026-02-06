@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>זירת הקרב - משחק אסטרטגיה</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .game-header {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .player-info {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .elixir-icon {
+            background: linear-gradient(135deg, #ff6ec4, #7873f5);
+        }
+
+        .tower-icon {
+            background: linear-gradient(135deg, #ffa751, #ffe259);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #87ceeb 0%, #98d8c8 100%);
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .card-deck {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .card {
+            width: 100px;
+            height: 130px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            border: 3px solid #ffd700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+        }
+
+        .card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #666;
+        }
+
+        .card.disabled:hover {
+            transform: none;
+        }
+
+        .card.selected {
+            border-color: #00ff00;
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        .card-icon {
+            font-size: 40px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .card-name {
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .card-cost {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: linear-gradient(135deg, #ff6ec4, #7873f5);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .game-over h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .victory {
+            color: #00ff00;
+        }
+
+        .defeat {
+            color: #ff0000;
+        }
+
+        .restart-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // הגדרות המשחק
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+        const MAX_ELIXIR = 10;
+        const ELIXIR_REGEN_RATE = 1; // כל שנייה
+        const TOWER_HEALTH = 100;
+
+        // סוגי יחידות
+        const UNIT_TYPES = {
+            WARRIOR: {
+                name: 'לוחם',
+                icon: '⚔️',
+                cost: 2,
+                health: 50,
+                damage: 10,
+                speed: 2,
+                range: 30,
+                attackSpeed: 1000,
+                color: '#ff6b6b'
+            },
+            ARCHER: {
+                name: 'קשת',
+                icon: '🏹',
+                cost: 3,
+                health: 30,
+                damage: 15,
+                speed: 1.5,
+                range: 150,
+                attackSpeed: 1500,
+                color: '#4ecdc4'
+            },
+            TANK: {
+                name: 'שריון',
+                icon: '🛡️',
+                cost: 4,
+                health: 100,
+                damage: 5,
+                speed: 1,
+                range: 30,
+                attackSpeed: 2000,
+                color: '#95e1d3'
+            },
+            WIZARD: {
+                name: 'קוסם',
+                icon: '🔮',
+                cost: 5,
+                health: 40,
+                damage: 25,
+                speed: 1.2,
+                range: 180,
+                attackSpeed: 2000,
+                color: '#a78bfa'
+            }
+        };
+
+        const CARDS = [
+            UNIT_TYPES.WARRIOR,
+            UNIT_TYPES.ARCHER,
+            UNIT_TYPES.TANK,
+            UNIT_TYPES.WIZARD
+        ];
+
+        function BattleArenaGame() {
+            const canvasRef = useRef(null);
+            const [elixir, setElixir] = useState(5);
+            const [playerTowers, setPlayerTowers] = useState(3);
+            const [enemyTowers, setEnemyTowers] = useState(3);
+            const [selectedCard, setSelectedCard] = useState(null);
+            const [gameOver, setGameOver] = useState(null);
+            const gameStateRef = useRef({
+                units: [],
+                towers: [],
+                lastElixirUpdate: Date.now(),
+                lastAIAction: Date.now(),
+                animationFrame: null
+            });
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                canvas.width = CANVAS_WIDTH;
+                canvas.height = CANVAS_HEIGHT;
+
+                // אתחול מגדלים
+                initializeTowers();
+
+                // לולאת המשחק
+                gameStateRef.current.animationFrame = requestAnimationFrame(gameLoop);
+
+                // עדכון אליקסיר
+                const elixirInterval = setInterval(() => {
+                    setElixir(prev => Math.min(prev + 1, MAX_ELIXIR));
+                }, 1000);
+
+                return () => {
+                    cancelAnimationFrame(gameStateRef.current.animationFrame);
+                    clearInterval(elixirInterval);
+                };
+            }, []);
+
+            const initializeTowers = () => {
+                gameStateRef.current.towers = [
+                    // מגדלי שחקן
+                    { x: CANVAS_WIDTH / 2 - 150, y: CANVAS_HEIGHT - 80, health: TOWER_HEALTH, maxHealth: TOWER_HEALTH, team: 'player', isMain: false },
+                    { x: CANVAS_WIDTH / 2 + 150, y: CANVAS_HEIGHT - 80, health: TOWER_HEALTH, maxHealth: TOWER_HEALTH, team: 'player', isMain: false },
+                    { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 50, health: TOWER_HEALTH * 1.5, maxHealth: TOWER_HEALTH * 1.5, team: 'player', isMain: true },
+                    // מגדלי אויב
+                    { x: CANVAS_WIDTH / 2 - 150, y: 80, health: TOWER_HEALTH, maxHealth: TOWER_HEALTH, team: 'enemy', isMain: false },
+                    { x: CANVAS_WIDTH / 2 + 150, y: 80, health: TOWER_HEALTH, maxHealth: TOWER_HEALTH, team: 'enemy', isMain: false },
+                    { x: CANVAS_WIDTH / 2, y: 50, health: TOWER_HEALTH * 1.5, maxHealth: TOWER_HEALTH * 1.5, team: 'enemy', isMain: true }
+                ];
+            };
+
+            const gameLoop = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                
+                // ניקוי המסך
+                drawBackground(ctx);
+                
+                // ציור מגדלים
+                drawTowers(ctx);
+                
+                // עדכון וציור יחידות
+                updateUnits();
+                drawUnits(ctx);
+
+                // בדיקת תנאי ניצחון
+                checkGameOver();
+
+                // AI פעולות
+                handleAI();
+
+                gameStateRef.current.animationFrame = requestAnimationFrame(gameLoop);
+            };
+
+            const drawBackground = (ctx) => {
+                // רקע
+                const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+                gradient.addColorStop(0, '#87ceeb');
+                gradient.addColorStop(1, '#98d8c8');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                // קו אמצע
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 10]);
+                ctx.beginPath();
+                ctx.moveTo(0, CANVAS_HEIGHT / 2);
+                ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // דשא
+                for (let i = 0; i < 30; i++) {
+                    const x = Math.random() * CANVAS_WIDTH;
+                    const y = Math.random() * CANVAS_HEIGHT;
+                    ctx.fillStyle = `rgba(34, 139, 34, ${Math.random() * 0.3})`;
+                    ctx.fillRect(x, y, 3, 8);
+                }
+            };
+
+            const drawTowers = (ctx) => {
+                gameStateRef.current.towers.forEach(tower => {
+                    if (tower.health <= 0) return;
+
+                    const size = tower.isMain ? 50 : 40;
+                    
+                    // צל
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.fillRect(tower.x - size/2 + 5, tower.y - size/2 + 5, size, size);
+
+                    // גוף המגדל
+                    const gradient = ctx.createLinearGradient(tower.x - size/2, tower.y - size/2, tower.x + size/2, tower.y + size/2);
+                    if (tower.team === 'player') {
+                        gradient.addColorStop(0, '#4a90e2');
+                        gradient.addColorStop(1, '#357abd');
+                    } else {
+                        gradient.addColorStop(0, '#e74c3c');
+                        gradient.addColorStop(1, '#c0392b');
+                    }
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(tower.x - size/2, tower.y - size/2, size, size);
+
+                    // גג
+                    ctx.fillStyle = tower.team === 'player' ? '#2c3e50' : '#8b0000';
+                    ctx.beginPath();
+                    ctx.moveTo(tower.x - size/2 - 5, tower.y - size/2);
+                    ctx.lineTo(tower.x, tower.y - size/2 - 15);
+                    ctx.lineTo(tower.x + size/2 + 5, tower.y - size/2);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // חלונות
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillRect(tower.x - 10, tower.y - 15, 8, 8);
+                    ctx.fillRect(tower.x + 2, tower.y - 15, 8, 8);
+
+                    // פס בריאות
+                    const healthBarWidth = size;
+                    const healthBarHeight = 5;
+                    const healthPercent = tower.health / tower.maxHealth;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(tower.x - healthBarWidth/2, tower.y + size/2 + 5, healthBarWidth, healthBarHeight);
+                    
+                    ctx.fillStyle = healthPercent > 0.5 ? '#2ecc71' : healthPercent > 0.25 ? '#f39c12' : '#e74c3c';
+                    ctx.fillRect(tower.x - healthBarWidth/2, tower.y + size/2 + 5, healthBarWidth * healthPercent, healthBarHeight);
+                });
+            };
+
+            const drawUnits = (ctx) => {
+                gameStateRef.current.units.forEach(unit => {
+                    if (unit.health <= 0) return;
+
+                    // צל
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(unit.x + 2, unit.y + 2, unit.size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // גוף היחידה
+                    ctx.fillStyle = unit.color;
+                    ctx.beginPath();
+                    ctx.arc(unit.x, unit.y, unit.size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // מסגרת
+                    ctx.strokeStyle = unit.team === 'player' ? '#4a90e2' : '#e74c3c';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // אייקון
+                    ctx.font = `${unit.size * 1.2}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(unit.icon, unit.x, unit.y);
+
+                    // פס בריאות
+                    const healthBarWidth = unit.size * 2;
+                    const healthBarHeight = 3;
+                    const healthPercent = unit.health / unit.maxHealth;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(unit.x - healthBarWidth/2, unit.y - unit.size - 8, healthBarWidth, healthBarHeight);
+                    
+                    ctx.fillStyle = healthPercent > 0.5 ? '#2ecc71' : healthPercent > 0.25 ? '#f39c12' : '#e74c3c';
+                    ctx.fillRect(unit.x - healthBarWidth/2, unit.y - unit.size - 8, healthBarWidth * healthPercent, healthBarHeight);
+
+                    // אנימציית תקיפה
+                    if (unit.isAttacking) {
+                        ctx.strokeStyle = unit.team === 'player' ? '#ffd700' : '#ff0000';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(unit.x, unit.y, unit.size + 5, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                });
+            };
+
+            const updateUnits = () => {
+                const units = gameStateRef.current.units;
+                const towers = gameStateRef.current.towers;
+                const now = Date.now();
+
+                units.forEach(unit => {
+                    if (unit.health <= 0) return;
+
+                    unit.isAttacking = false;
+
+                    // מצא יעד
+                    let target = null;
+                    let minDistance = Infinity;
+
+                    // חפש יחידות אויב
+                    units.forEach(other => {
+                        if (other.team === unit.team || other.health <= 0) return;
+                        const distance = Math.hypot(unit.x - other.x, unit.y - other.y);
+                        if (distance < unit.range && distance < minDistance) {
+                            minDistance = distance;
+                            target = other;
+                        }
+                    });
+
+                    // חפש מגדלים אויבים
+                    towers.forEach(tower => {
+                        if (tower.team === unit.team || tower.health <= 0) return;
+                        const distance = Math.hypot(unit.x - tower.x, unit.y - tower.y);
+                        if (distance < unit.range && distance < minDistance) {
+                            minDistance = distance;
+                            target = tower;
+                        }
+                    });
+
+                    if (target) {
+                        // תקיפה
+                        if (!unit.lastAttack || now - unit.lastAttack > unit.attackSpeed) {
+                            target.health -= unit.damage;
+                            unit.lastAttack = now;
+                            unit.isAttacking = true;
+
+                            // עדכון מגדלים
+                            if (target.team === 'player') {
+                                const aliveTowers = towers.filter(t => t.team === 'player' && t.health > 0).length;
+                                setPlayerTowers(aliveTowers);
+                            } else if (target.team === 'enemy') {
+                                const aliveTowers = towers.filter(t => t.team === 'enemy' && t.health > 0).length;
+                                setEnemyTowers(aliveTowers);
+                            }
+                        }
+                    } else {
+                        // תנועה קדימה
+                        if (unit.team === 'player') {
+                            unit.y -= unit.speed;
+                        } else {
+                            unit.y += unit.speed;
+                        }
+                    }
+                });
+
+                // הסרת יחידות מתות
+                gameStateRef.current.units = units.filter(u => u.health > 0);
+            };
+
+            const handleAI = () => {
+                const now = Date.now();
+                if (now - gameStateRef.current.lastAIAction < 3000) return;
+
+                // AI פשוט - מניח יחידה אקראית
+                const randomCard = CARDS[Math.floor(Math.random() * CARDS.length)];
+                const randomX = Math.random() * CANVAS_WIDTH * 0.6 + CANVAS_WIDTH * 0.2;
+                
+                spawnUnit(randomCard, randomX, 100, 'enemy');
+                gameStateRef.current.lastAIAction = now;
+            };
+
+            const spawnUnit = (unitType, x, y, team) => {
+                const newUnit = {
+                    ...unitType,
+                    x,
+                    y,
+                    team,
+                    maxHealth: unitType.health,
+                    size: 15,
+                    lastAttack: null,
+                    isAttacking: false
+                };
+                gameStateRef.current.units.push(newUnit);
+            };
+
+            const handleCardClick = (card) => {
+                if (elixir < card.cost) return;
+                setSelectedCard(card);
+            };
+
+            const handleCanvasClick = (e) => {
+                if (!selectedCard) return;
+                if (elixir < selectedCard.cost) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                // אפשר להניח רק בחצי התחתון
+                if (y < CANVAS_HEIGHT / 2) return;
+
+                spawnUnit(selectedCard, x, y, 'player');
+                setElixir(prev => prev - selectedCard.cost);
+                setSelectedCard(null);
+            };
+
+            const checkGameOver = () => {
+                const playerMainTower = gameStateRef.current.towers.find(t => t.team === 'player' && t.isMain);
+                const enemyMainTower = gameStateRef.current.towers.find(t => t.team === 'enemy' && t.isMain);
+
+                if (playerMainTower && playerMainTower.health <= 0) {
+                    setGameOver('defeat');
+                } else if (enemyMainTower && enemyMainTower.health <= 0) {
+                    setGameOver('victory');
+                }
+            };
+
+            const restartGame = () => {
+                setGameOver(null);
+                setElixir(5);
+                setPlayerTowers(3);
+                setEnemyTowers(3);
+                gameStateRef.current.units = [];
+                initializeTowers();
+            };
+
+            return (
+                <div className="game-container">
+                    <div className="game-header">
+                        <div className="player-info">
+                            <div className="stat">
+                                <div className="stat-icon elixir-icon">💧</div>
+                                <div className="stat-value">{elixir}/{MAX_ELIXIR}</div>
+                            </div>
+                            <div className="stat">
+                                <div className="stat-icon tower-icon">👤</div>
+                                <div className="stat-value">{playerTowers}</div>
+                            </div>
+                        </div>
+                        <h2 style={{color: 'white', fontSize: '24px'}}>זירת הקרב</h2>
+                        <div className="player-info">
+                            <div className="stat">
+                                <div className="stat-icon tower-icon">🤖</div>
+                                <div className="stat-value">{enemyTowers}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="canvas-container">
+                        <canvas 
+                            ref={canvasRef} 
+                            id="gameCanvas"
+                            onClick={handleCanvasClick}
+                            style={{cursor: selectedCard ? 'crosshair' : 'default'}}
+                        />
+                    </div>
+
+                    <div className="card-deck">
+                        {CARDS.map((card, index) => (
+                            <div 
+                                key={index}
+                                className={`card ${elixir < card.cost ? 'disabled' : ''} ${selectedCard === card ? 'selected' : ''}`}
+                                onClick={() => handleCardClick(card)}
+                            >
+                                <div className="card-cost">{card.cost}</div>
+                                <div className="card-icon">{card.icon}</div>
+                                <div className="card-name">{card.name}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {gameOver && (
+                        <div className="game-over">
+                            <h1 className={gameOver === 'victory' ? 'victory' : 'defeat'}>
+                                {gameOver === 'victory' ? '🎉 ניצחון! 🎉' : '💀 הפסד 💀'}
+                            </h1>
+                            <p style={{fontSize: '20px', marginBottom: '10px'}}>
+                                {gameOver === 'victory' ? 'מעולה! השמדת את כל המגדלים!' : 'המגדל הראשי שלך נהרס!'}
+                            </p>
+                            <button className="restart-btn" onClick={restartGame}>
+                                משחק חדש
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BattleArenaGame />);
+    </script>
+</body>
+</html>
