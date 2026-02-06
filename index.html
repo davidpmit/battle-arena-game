@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Battle Arena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --primary-red: #dc2626;
+            --gold: #fbbf24;
+            --dark: #0f172a;
+            --elixir-purple: #a855f7;
+            --arena-green: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #root {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header Styling */
+        .game-header {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .player-section {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .tower-count {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tower-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-blue), #1e40af);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .tower-icon.destroyed {
+            background: linear-gradient(135deg, #374151, #1f2937);
+            opacity: 0.3;
+            box-shadow: none;
+        }
+
+        .tower-icon.enemy {
+            background: linear-gradient(135deg, var(--primary-red), #991b1b);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+        }
+
+        .elixir-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.2));
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid var(--elixir-purple);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .elixir-drops {
+            display: flex;
+            gap: 4px;
+        }
+
+        .elixir-drop {
+            width: 12px;
+            height: 16px;
+            background: linear-gradient(180deg, #e879f9, var(--elixir-purple));
+            border-radius: 0 0 50% 50%;
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+        }
+
+        .elixir-drop.empty {
+            background: rgba(168, 85, 247, 0.2);
+            box-shadow: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .elixir-count {
+            font-size: 24px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-title {
+            font-family: 'Righteous', cursive;
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(251, 191, 36, 0.5);
+            letter-spacing: 2px;
+        }
+
+        /* Arena Canvas */
+        .arena-container {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #1e3a5f 0%, #2d5a3d 50%, #5a3d2d 100%);
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Card Deck */
+        .card-deck {
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            border-top: 2px solid rgba(251, 191, 36, 0.3);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .card {
+            width: 110px;
+            height: 150px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 12px;
+            border: 3px solid var(--gold);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4),
+                        0 0 0 1px rgba(251, 191, 36, 0.2);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(251, 191, 36, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-12px) scale(1.05);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6),
+                        0 0 30px rgba(251, 191, 36, 0.4);
+        }
+
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #475569;
+        }
+
+        .card.disabled:hover {
+            transform: none;
+        }
+
+        .card.selected {
+            border-color: #10b981;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+            animation: selectedPulse 1s infinite;
+        }
+
+        @keyframes selectedPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.8); }
+        }
+
+        .card-content {
+            padding: 12px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-icon {
+            font-size: 48px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .card-name {
+            text-align: center;
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-cost {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #e879f9, var(--elixir-purple));
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 16px;
+            border: 3px solid var(--dark);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        /* Next Card Preview */
+        .next-card-preview {
+            position: absolute;
+            left: 24px;
+            bottom: 20px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9));
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .next-card-label {
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .next-card-mini {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-radius: 8px;
+            border: 2px solid var(--gold);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .next-card-mini .card-icon {
+            font-size: 32px;
+        }
+
+        .next-card-mini .card-name {
+            font-size: 9px;
+        }
+
+        /* Game Over Screen */
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+            backdrop-filter: blur(20px);
+            color: white;
+            padding: 48px 72px;
+            border-radius: 24px;
+            text-align: center;
+            border: 3px solid var(--gold);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
+                        0 0 100px rgba(251, 191, 36, 0.3);
+            z-index: 1000;
+            animation: gameOverAppear 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes gameOverAppear {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .game-over h1 {
+            font-family: 'Righteous', cursive;
+            font-size: 56px;
+            margin-bottom: 16px;
+            letter-spacing: 2px;
+            animation: titleGlow 2s infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 20px currentColor; }
+            50% { text-shadow: 0 0 40px currentColor; }
+        }
+
+        .victory {
+            color: #10b981;
+        }
+
+        .defeat {
+            color: #dc2626;
+        }
+
+        .game-over p {
+            font-size: 20px;
+            margin-bottom: 32px;
+            color: #cbd5e1;
+        }
+
+        .restart-btn {
+            padding: 16px 48px;
+            font-size: 22px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            color: var(--dark);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.6);
+        }
+
+        /* Tooltips and UI enhancements */
+        .placement-indicator {
+            position: absolute;
+            pointer-events: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid var(--arena-green);
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.3), transparent);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+            animation: indicatorPulse 1s infinite;
+        }
+
+        @keyframes indicatorPulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Game Constants
+        const CANVAS_WIDTH = 1000;
+        const CANVAS_HEIGHT = 700;
+        const MAX_ELIXIR = 10;
+        const ELIXIR_REGEN_TIME = 2800; // milliseconds per elixir
+        const LANE_LEFT = CANVAS_WIDTH * 0.3;
+        const LANE_RIGHT = CANVAS_WIDTH * 0.7;
+        const BRIDGE_Y = CANVAS_HEIGHT / 2;
+
+        // Unit Types with balanced stats
+        const UNIT_TYPES = {
+            KNIGHT: {
+                name: 'אביר',
+                icon: '⚔️',
+                cost: 3,
+                health: 100,
+                maxHealth: 100,
+                damage: 12,
+                speed: 1.8,
+                range: 40,
+                attackSpeed: 1200,
+                color: '#ef4444',
+                size: 18,
+                targetsPriority: 'any'
+            },
+            ARCHER: {
+                name: 'קשת',
+                icon: '🏹',
+                cost: 3,
+                health: 60,
+                maxHealth: 60,
+                damage: 18,
+                speed: 1.3,
+                range: 200,
+                attackSpeed: 1500,
+                color: '#8b5cf6',
+                size: 16,
+                targetsPriority: 'any'
+            },
+            GIANT: {
+                name: 'ענק',
+                icon: '🗿',
+                cost: 5,
+                health: 200,
+                maxHealth: 200,
+                damage: 8,
+                speed: 1.0,
+                range: 35,
+                attackSpeed: 1800,
+                color: '#06b6d4',
+                size: 24,
+                targetsPriority: 'buildings'
+            },
+            WIZARD: {
+                name: 'קוסם',
+                icon: '🧙',
+                cost: 5,
+                health: 70,
+                maxHealth: 70,
+                damage: 30,
+                speed: 1.2,
+                range: 220,
+                attackSpeed: 1700,
+                color: '#f59e0b',
+                size: 17,
+                targetsPriority: 'any',
+                splashRadius: 60
+            },
+            MINI_PEKKA: {
+                name: 'פקה מיני',
+                icon: '🤖',
+                cost: 4,
+                health: 120,
+                maxHealth: 120,
+                damage: 40,
+                speed: 1.6,
+                range: 40,
+                attackSpeed: 1600,
+                color: '#ec4899',
+                size: 20,
+                targetsPriority: 'any'
+            },
+            MUSKETEER: {
+                name: 'רובאית',
+                icon: '🎯',
+                cost: 4,
+                health: 80,
+                maxHealth: 80,
+                damage: 25,
+                speed: 1.4,
+                range: 250,
+                attackSpeed: 1300,
+                color: '#10b981',
+                size: 17,
+                targetsPriority: 'any'
+            },
+            BABY_DRAGON: {
+                name: 'דרקון צעיר',
+                icon: '🐲',
+                cost: 4,
+                health: 110,
+                maxHealth: 110,
+                damage: 20,
+                speed: 1.5,
+                range: 150,
+                attackSpeed: 1600,
+                color: '#f97316',
+                size: 20,
+                targetsPriority: 'any',
+                splashRadius: 50,
+                flying: true
+            },
+            PRINCE: {
+                name: 'נסיך',
+                icon: '🐴',
+                cost: 5,
+                health: 150,
+                maxHealth: 150,
+                damage: 35,
+                speed: 2.2,
+                range: 50,
+                attackSpeed: 1400,
+                color: '#6366f1',
+                size: 22,
+                targetsPriority: 'any',
+                charge: true
+            }
+        };
+
+        const ALL_CARDS = Object.values(UNIT_TYPES);
+
+        function RoyalBattleArena() {
+            const canvasRef = useRef(null);
+            const [elixir, setElixir] = useState(5);
+            const [playerTowers, setPlayerTowers] = useState([true, true, true]);
+            const [enemyTowers, setEnemyTowers] = useState([true, true, true]);
+            const [selectedCard, setSelectedCard] = useState(null);
+            const [deck, setDeck] = useState([]);
+            const [nextCard, setNextCard] = useState(null);
+            const [gameOver, setGameOver] = useState(null);
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+            const gameStateRef = useRef({
+                units: [],
+                towers: [],
+                projectiles: [],
+                particles: [],
+                lastElixirUpdate: Date.now(),
+                lastAIAction: Date.now(),
+                animationFrame: null,
+                cardQueue: [],
+                usedCards: new Set()
+            });
+
+            // Initialize deck
+            useEffect(() => {
+                const shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5);
+                const initialDeck = shuffled.slice(0, 4);
+                const remaining = shuffled.slice(4);
+                
+                setDeck(initialDeck);
+                setNextCard(remaining[0]);
+                gameStateRef.current.cardQueue = remaining.slice(1);
+            }, []);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                canvas.width = CANVAS_WIDTH;
+                canvas.height = CANVAS_HEIGHT;
+
+                initializeTowers();
+                gameStateRef.current.animationFrame = requestAnimationFrame(gameLoop);
+
+                const elixirInterval = setInterval(() => {
+                    setElixir(prev => Math.min(prev + 1, MAX_ELIXIR));
+                }, ELIXIR_REGEN_TIME);
+
+                return () => {
+                    cancelAnimationFrame(gameStateRef.current.animationFrame);
+                    clearInterval(elixirInterval);
+                };
+            }, []);
+
+            const initializeTowers = () => {
+                const towerSize = 45;
+                const kingSize = 55;
+                
+                gameStateRef.current.towers = [
+                    // Player towers
+                    { 
+                        x: LANE_LEFT, 
+                        y: CANVAS_HEIGHT - 120, 
+                        health: 150, 
+                        maxHealth: 150, 
+                        team: 'player', 
+                        type: 'princess',
+                        size: towerSize,
+                        range: 250,
+                        damage: 8,
+                        attackSpeed: 800
+                    },
+                    { 
+                        x: LANE_RIGHT, 
+                        y: CANVAS_HEIGHT - 120, 
+                        health: 150, 
+                        maxHealth: 150, 
+                        team: 'player', 
+                        type: 'princess',
+                        size: towerSize,
+                        range: 250,
+                        damage: 8,
+                        attackSpeed: 800
+                    },
+                    { 
+                        x: CANVAS_WIDTH / 2, 
+                        y: CANVAS_HEIGHT - 60, 
+                        health: 250, 
+                        maxHealth: 250, 
+                        team: 'player', 
+                        type: 'king',
+                        size: kingSize,
+                        range: 280,
+                        damage: 12,
+                        attackSpeed: 1000
+                    },
+                    // Enemy towers
+                    { 
+                        x: LANE_LEFT, 
+                        y: 120, 
+                        health: 150, 
+                        maxHealth: 150, 
+                        team: 'enemy', 
+                        type: 'princess',
+                        size: towerSize,
+                        range: 250,
+                        damage: 8,
+                        attackSpeed: 800
+                    },
+                    { 
+                        x: LANE_RIGHT, 
+                        y: 120, 
+                        health: 150, 
+                        maxHealth: 150, 
+                        team: 'enemy', 
+                        type: 'princess',
+                        size: towerSize,
+                        range: 250,
+                        damage: 8,
+                        attackSpeed: 800
+                    },
+                    { 
+                        x: CANVAS_WIDTH / 2, 
+                        y: 60, 
+                        health: 250, 
+                        maxHealth: 250, 
+                        team: 'enemy', 
+                        type: 'king',
+                        size: kingSize,
+                        range: 280,
+                        damage: 12,
+                        attackSpeed: 1000
+                    }
+                ];
+            };
+
+            const gameLoop = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                
+                drawArena(ctx);
+                drawTowers(ctx);
+                updateAndDrawUnits(ctx);
+                updateAndDrawProjectiles(ctx);
+                updateAndDrawParticles(ctx);
+                handleTowerShooting();
+                handleAI();
+                checkGameOver();
+
+                gameStateRef.current.animationFrame = requestAnimationFrame(gameLoop);
+            };
+
+            const drawArena = (ctx) => {
+                // Sky gradient
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+                skyGradient.addColorStop(0, '#1e3a5f');
+                skyGradient.addColorStop(0.5, '#2d5a3d');
+                skyGradient.addColorStop(1, '#5a3d2d');
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                // Bridge
+                ctx.fillStyle = 'rgba(139, 92, 46, 0.6)';
+                ctx.fillRect(0, BRIDGE_Y - 30, CANVAS_WIDTH, 60);
+                
+                ctx.strokeStyle = 'rgba(101, 67, 33, 0.8)';
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 10; i++) {
+                    const x = (CANVAS_WIDTH / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, BRIDGE_Y - 30);
+                    ctx.lineTo(x, BRIDGE_Y + 30);
+                    ctx.stroke();
+                }
+
+                // River
+                const riverGradient = ctx.createLinearGradient(0, BRIDGE_Y - 100, 0, BRIDGE_Y - 30);
+                riverGradient.addColorStop(0, 'rgba(30, 58, 138, 0.4)');
+                riverGradient.addColorStop(1, 'rgba(59, 130, 246, 0.3)');
+                ctx.fillStyle = riverGradient;
+                ctx.fillRect(0, BRIDGE_Y - 100, CANVAS_WIDTH, 70);
+                
+                const riverGradient2 = ctx.createLinearGradient(0, BRIDGE_Y + 30, 0, BRIDGE_Y + 100);
+                riverGradient2.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+                riverGradient2.addColorStop(1, 'rgba(30, 58, 138, 0.4)');
+                ctx.fillStyle = riverGradient2;
+                ctx.fillRect(0, BRIDGE_Y + 30, CANVAS_WIDTH, 70);
+
+                // Lane markers (subtle)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                ctx.beginPath();
+                ctx.moveTo(LANE_LEFT, 0);
+                ctx.lineTo(LANE_LEFT, CANVAS_HEIGHT);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(LANE_RIGHT, 0);
+                ctx.lineTo(LANE_RIGHT, CANVAS_HEIGHT);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Grass texture
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * CANVAS_WIDTH;
+                    const y = Math.random() * CANVAS_HEIGHT;
+                    if (y < BRIDGE_Y - 100 || y > BRIDGE_Y + 100) {
+                        ctx.fillStyle = `rgba(34, 197, 94, ${Math.random() * 0.2})`;
+                        ctx.fillRect(x, y, 2, 6);
+                    }
+                }
+            };
+
+            const drawTowers = (ctx) => {
+                gameStateRef.current.towers.forEach((tower, index) => {
+                    if (tower.health <= 0) return;
+
+                    const isKing = tower.type === 'king';
+                    const size = tower.size;
+
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(tower.x, tower.y + size/2 + 8, size/2 + 5, size/4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tower body
+                    const gradient = ctx.createLinearGradient(
+                        tower.x - size/2, tower.y - size/2,
+                        tower.x + size/2, tower.y + size/2
+                    );
+                    
+                    if (tower.team === 'player') {
+                        gradient.addColorStop(0, isKing ? '#3b82f6' : '#60a5fa');
+                        gradient.addColorStop(1, isKing ? '#1d4ed8' : '#2563eb');
+                    } else {
+                        gradient.addColorStop(0, isKing ? '#ef4444' : '#f87171');
+                        gradient.addColorStop(1, isKing ? '#b91c1c' : '#dc2626');
+                    }
+
+                    // Main tower structure
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(tower.x - size/2, tower.y - size/2, size, size);
+
+                    // Tower details
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.fillRect(tower.x - size/2 + 5, tower.y - size/2 + 5, size - 10, size - 10);
+
+                    // Windows
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    const windowSize = size / 6;
+                    ctx.fillRect(tower.x - windowSize/2 - 8, tower.y - windowSize, windowSize, windowSize);
+                    ctx.fillRect(tower.x - windowSize/2 + 8, tower.y - windowSize, windowSize, windowSize);
+
+                    // Roof
+                    ctx.fillStyle = tower.team === 'player' ? '#1e3a8a' : '#7f1d1d';
+                    ctx.beginPath();
+                    ctx.moveTo(tower.x - size/2 - 8, tower.y - size/2);
+                    ctx.lineTo(tower.x, tower.y - size/2 - 20);
+                    ctx.lineTo(tower.x + size/2 + 8, tower.y - size/2);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Crown for king tower
+                    if (isKing) {
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.font = '20px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('👑', tower.x, tower.y - size/2 - 30);
+                    }
+
+                    // Health bar
+                    const healthBarWidth = size;
+                    const healthBarHeight = 6;
+                    const healthPercent = tower.health / tower.maxHealth;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(tower.x - healthBarWidth/2, tower.y + size/2 + 10, healthBarWidth, healthBarHeight);
+
+                    const healthColor = healthPercent > 0.6 ? '#10b981' : 
+                                       healthPercent > 0.3 ? '#f59e0b' : '#ef4444';
+                    ctx.fillStyle = healthColor;
+                    ctx.fillRect(tower.x - healthBarWidth/2, tower.y + size/2 + 10, 
+                                healthBarWidth * healthPercent, healthBarHeight);
+
+                    // Attack indicator
+                    if (tower.isAttacking) {
+                        ctx.strokeStyle = tower.team === 'player' ? '#3b82f6' : '#ef4444';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(tower.x, tower.y, size/2 + 10, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                });
+            };
+
+            const updateAndDrawUnits = (ctx) => {
+                const units = gameStateRef.current.units;
+                const towers = gameStateRef.current.towers;
+                const now = Date.now();
+
+                units.forEach(unit => {
+                    if (unit.health <= 0) return;
+
+                    unit.isAttacking = false;
+                    let target = null;
+                    let minDistance = Infinity;
+
+                    // Find targets
+                    if (unit.targetsPriority === 'buildings') {
+                        towers.forEach(tower => {
+                            if (tower.team === unit.team || tower.health <= 0) return;
+                            const distance = Math.hypot(unit.x - tower.x, unit.y - tower.y);
+                            if (distance < unit.range && distance < minDistance) {
+                                minDistance = distance;
+                                target = tower;
+                            }
+                        });
+                    }
+
+                    if (!target || unit.targetsPriority === 'any') {
+                        units.forEach(other => {
+                            if (other.team === unit.team || other.health <= 0) return;
+                            const distance = Math.hypot(unit.x - other.x, unit.y - other.y);
+                            if (distance < unit.range && distance < minDistance) {
+                                minDistance = distance;
+                                target = other;
+                            }
+                        });
+
+                        if (!target) {
+                            towers.forEach(tower => {
+                                if (tower.team === unit.team || tower.health <= 0) return;
+                                const distance = Math.hypot(unit.x - tower.x, unit.y - tower.y);
+                                if (distance < unit.range && distance < minDistance) {
+                                    minDistance = distance;
+                                    target = tower;
+                                }
+                            });
+                        }
+                    }
+
+                    if (target) {
+                        if (!unit.lastAttack || now - unit.lastAttack > unit.attackSpeed) {
+                            if (unit.range > 100) {
+                                createProjectile(unit, target);
+                            } else {
+                                if (unit.splashRadius) {
+                                    dealSplashDamage(target, unit.damage, unit.splashRadius, unit.team);
+                                } else {
+                                    target.health -= unit.damage;
+                                }
+                                createHitParticles(target.x, target.y, unit.color);
+                            }
+                            unit.lastAttack = now;
+                            unit.isAttacking = true;
+                        }
+                    } else {
+                        // Move toward enemy base
+                        const targetY = unit.team === 'player' ? 0 : CANVAS_HEIGHT;
+                        const dy = targetY - unit.y;
+                        const distance = Math.abs(dy);
+                        
+                        if (distance > 5) {
+                            unit.y += (dy / distance) * unit.speed;
+                            
+                            // Lane following
+                            const targetX = unit.preferredLane || (Math.abs(unit.x - LANE_LEFT) < Math.abs(unit.x - LANE_RIGHT) ? LANE_LEFT : LANE_RIGHT);
+                            const dx = targetX - unit.x;
+                            if (Math.abs(dx) > 5) {
+                                unit.x += (dx / Math.abs(dx)) * (unit.speed * 0.5);
+                            }
+                        }
+                    }
+
+                    // Draw unit
+                    drawUnit(ctx, unit);
+                });
+
+                // Remove dead units
+                gameStateRef.current.units = units.filter(u => u.health > 0);
+
+                // Update tower counts
+                const playerAlive = towers.filter(t => t.team === 'player' && t.health > 0).length;
+                const enemyAlive = towers.filter(t => t.team === 'enemy' && t.health > 0).length;
+                setPlayerTowers([
+                    towers[0].health > 0,
+                    towers[1].health > 0,
+                    towers[2].health > 0
+                ]);
+                setEnemyTowers([
+                    towers[3].health > 0,
+                    towers[4].health > 0,
+                    towers[5].health > 0
+                ]);
+            };
+
+            const drawUnit = (ctx, unit) => {
+                // Shadow
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(unit.x + 3, unit.y + 3, unit.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Unit body
+                const gradient = ctx.createRadialGradient(unit.x, unit.y, 0, unit.x, unit.y, unit.size);
+                gradient.addColorStop(0, unit.color);
+                gradient.addColorStop(1, `${unit.color}aa`);
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(unit.x, unit.y, unit.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Team indicator ring
+                ctx.strokeStyle = unit.team === 'player' ? '#3b82f6' : '#ef4444';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Icon
+                ctx.font = `${unit.size * 1.3}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(unit.icon, unit.x, unit.y);
+
+                // Health bar
+                const healthBarWidth = unit.size * 2.5;
+                const healthBarHeight = 4;
+                const healthPercent = unit.health / unit.maxHealth;
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(unit.x - healthBarWidth/2, unit.y - unit.size - 10, healthBarWidth, healthBarHeight);
+
+                const healthColor = healthPercent > 0.6 ? '#10b981' : 
+                                   healthPercent > 0.3 ? '#f59e0b' : '#ef4444';
+                ctx.fillStyle = healthColor;
+                ctx.fillRect(unit.x - healthBarWidth/2, unit.y - unit.size - 10, 
+                            healthBarWidth * healthPercent, healthBarHeight);
+
+                // Attack indicator
+                if (unit.isAttacking) {
+                    ctx.strokeStyle = unit.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(unit.x, unit.y, unit.size + 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            };
+
+            const createProjectile = (from, to) => {
+                gameStateRef.current.projectiles.push({
+                    x: from.x,
+                    y: from.y,
+                    targetX: to.x,
+                    targetY: to.y,
+                    target: to,
+                    damage: from.damage,
+                    speed: 8,
+                    color: from.color,
+                    team: from.team,
+                    splashRadius: from.splashRadius
+                });
+            };
+
+            const updateAndDrawProjectiles = (ctx) => {
+                const projectiles = gameStateRef.current.projectiles;
+
+                projectiles.forEach(proj => {
+                    const dx = proj.targetX - proj.x;
+                    const dy = proj.targetY - proj.y;
+                    const distance = Math.hypot(dx, dy);
+
+                    if (distance < proj.speed || !proj.target || proj.target.health <= 0) {
+                        if (proj.target && proj.target.health > 0) {
+                            if (proj.splashRadius) {
+                                dealSplashDamage(proj.target, proj.damage, proj.splashRadius, proj.team);
+                            } else {
+                                proj.target.health -= proj.damage;
+                            }
+                            createHitParticles(proj.target.x, proj.target.y, proj.color);
+                        }
+                        proj.dead = true;
+                    } else {
+                        proj.x += (dx / distance) * proj.speed;
+                        proj.y += (dy / distance) * proj.speed;
+
+                        // Draw projectile
+                        ctx.fillStyle = proj.color;
+                        ctx.beginPath();
+                        ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Trail
+                        ctx.strokeStyle = `${proj.color}88`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(proj.x, proj.y);
+                        ctx.lineTo(proj.x - (dx/distance) * 10, proj.y - (dy/distance) * 10);
+                        ctx.stroke();
+                    }
+                });
+
+                gameStateRef.current.projectiles = projectiles.filter(p => !p.dead);
+            };
+
+            const dealSplashDamage = (epicenter, damage, radius, team) => {
+                const units = gameStateRef.current.units;
+                units.forEach(unit => {
+                    if (unit.team === team) return;
+                    const distance = Math.hypot(unit.x - epicenter.x, unit.y - epicenter.y);
+                    if (distance < radius) {
+                        unit.health -= damage;
+                        createHitParticles(unit.x, unit.y, '#f59e0b');
+                    }
+                });
+            };
+
+            const createHitParticles = (x, y, color) => {
+                for (let i = 0; i < 8; i++) {
+                    gameStateRef.current.particles.push({
+                        x,
+                        y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 30,
+                        color,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            };
+
+            const updateAndDrawParticles = (ctx) => {
+                const particles = gameStateRef.current.particles;
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2; // gravity
+                    p.life--;
+
+                    ctx.fillStyle = `${p.color}${Math.floor((p.life / 30) * 255).toString(16).padStart(2, '0')}`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                gameStateRef.current.particles = particles.filter(p => p.life > 0);
+            };
+
+            const handleTowerShooting = () => {
+                const towers = gameStateRef.current.towers;
+                const units = gameStateRef.current.units;
+                const now = Date.now();
+
+                towers.forEach(tower => {
+                    if (tower.health <= 0) return;
+
+                    tower.isAttacking = false;
+                    let target = null;
+                    let minDistance = Infinity;
+
+                    units.forEach(unit => {
+                        if (unit.team === tower.team) return;
+                        const distance = Math.hypot(unit.x - tower.x, unit.y - tower.y);
+                        if (distance < tower.range && distance < minDistance) {
+                            minDistance = distance;
+                            target = unit;
+                        }
+                    });
+
+                    if (target) {
+                        if (!tower.lastAttack || now - tower.lastAttack > tower.attackSpeed) {
+                            createProjectile(tower, target);
+                            tower.lastAttack = now;
+                            tower.isAttacking = true;
+                        }
+                    }
+                });
+            };
+
+            const handleAI = () => {
+                const now = Date.now();
+                if (now - gameStateRef.current.lastAIAction < 4000) return;
+
+                const randomCard = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
+                const lane = Math.random() < 0.5 ? LANE_LEFT : LANE_RIGHT;
+                const x = lane + (Math.random() - 0.5) * 60;
+                const y = 150 + Math.random() * 50;
+
+                spawnUnit(randomCard, x, y, 'enemy');
+                gameStateRef.current.lastAIAction = now;
+            };
+
+            const spawnUnit = (unitType, x, y, team) => {
+                const newUnit = {
+                    ...unitType,
+                    x,
+                    y,
+                    team,
+                    lastAttack: null,
+                    isAttacking: false,
+                    preferredLane: Math.abs(x - LANE_LEFT) < Math.abs(x - LANE_RIGHT) ? LANE_LEFT : LANE_RIGHT
+                };
+                gameStateRef.current.units.push(newUnit);
+                createSpawnParticles(x, y, unitType.color);
+            };
+
+            const createSpawnParticles = (x, y, color) => {
+                for (let i = 0; i < 20; i++) {
+                    const angle = (Math.PI * 2 * i) / 20;
+                    gameStateRef.current.particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * 4,
+                        vy: Math.sin(angle) * 4,
+                        life: 40,
+                        color,
+                        size: 3
+                    });
+                }
+            };
+
+            const handleCardClick = (card, index) => {
+                if (elixir < card.cost) return;
+                setSelectedCard(card);
+            };
+
+            const handleCanvasClick = (e) => {
+                if (!selectedCard || elixir < selectedCard.cost) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                // Only allow placement in player's half
+                if (y < BRIDGE_Y + 50) return;
+
+                spawnUnit(selectedCard, x, y, 'player');
+                setElixir(prev => prev - selectedCard.cost);
+
+                // Cycle cards
+                const newDeck = [...deck];
+                const cardIndex = newDeck.findIndex(c => c === selectedCard);
+                newDeck[cardIndex] = nextCard;
+                
+                const queue = gameStateRef.current.cardQueue;
+                if (queue.length > 0) {
+                    setNextCard(queue[0]);
+                    gameStateRef.current.cardQueue = queue.slice(1);
+                } else {
+                    // Reshuffle
+                    const shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5);
+                    setNextCard(shuffled[0]);
+                    gameStateRef.current.cardQueue = shuffled.slice(1);
+                }
+
+                setDeck(newDeck);
+                setSelectedCard(null);
+            };
+
+            const handleCanvasMouseMove = (e) => {
+                if (!selectedCard) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                setMousePos({ x, y });
+            };
+
+            const checkGameOver = () => {
+                const towers = gameStateRef.current.towers;
+                const playerKing = towers[2];
+                const enemyKing = towers[5];
+
+                if (playerKing.health <= 0 && !gameOver) {
+                    setGameOver('defeat');
+                } else if (enemyKing.health <= 0 && !gameOver) {
+                    setGameOver('victory');
+                }
+            };
+
+            const restartGame = () => {
+                setGameOver(null);
+                setElixir(5);
+                gameStateRef.current.units = [];
+                gameStateRef.current.projectiles = [];
+                gameStateRef.current.particles = [];
+                initializeTowers();
+                
+                const shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5);
+                setDeck(shuffled.slice(0, 4));
+                setNextCard(shuffled[4]);
+                gameStateRef.current.cardQueue = shuffled.slice(5);
+            };
+
+            return (
+                <div className="game-container">
+                    <div className="game-header">
+                        <div className="player-section">
+                            <div className="tower-count">
+                                {playerTowers.map((alive, i) => (
+                                    <div key={i} className={`tower-icon ${!alive ? 'destroyed' : ''}`}>
+                                        {i === 2 ? '👑' : '🏰'}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="elixir-display">
+                                <div className="elixir-drops">
+                                    {[...Array(10)].map((_, i) => (
+                                        <div key={i} className={`elixir-drop ${i >= elixir ? 'empty' : ''}`} />
+                                    ))}
+                                </div>
+                                <div className="elixir-count">{elixir}</div>
+                            </div>
+                        </div>
+
+                        <div className="game-title">ROYAL ARENA</div>
+
+                        <div className="player-section">
+                            <div className="tower-count">
+                                {enemyTowers.map((alive, i) => (
+                                    <div key={i} className={`tower-icon enemy ${!alive ? 'destroyed' : ''}`}>
+                                        {i === 2 ? '👑' : '🏰'}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="arena-container">
+                        <canvas 
+                            ref={canvasRef}
+                            id="gameCanvas"
+                            onClick={handleCanvasClick}
+                            onMouseMove={handleCanvasMouseMove}
+                            style={{cursor: selectedCard ? 'crosshair' : 'default'}}
+                        />
+                        
+                        {selectedCard && mousePos.y > BRIDGE_Y + 50 && (
+                            <div 
+                                className="placement-indicator"
+                                style={{
+                                    left: `${(mousePos.x / CANVAS_WIDTH) * 100}%`,
+                                    top: `${(mousePos.y / CANVAS_HEIGHT) * 100}%`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            />
+                        )}
+
+                        {nextCard && (
+                            <div className="next-card-preview">
+                                <div className="next-card-label">הבא בתור</div>
+                                <div className="next-card-mini">
+                                    <div className="card-icon">{nextCard.icon}</div>
+                                    <div className="card-name">{nextCard.name}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="card-deck">
+                        {deck.map((card, index) => (
+                            <div 
+                                key={index}
+                                className={`card ${elixir < card.cost ? 'disabled' : ''} ${selectedCard === card ? 'selected' : ''}`}
+                                onClick={() => handleCardClick(card, index)}
+                            >
+                                <div className="card-cost">{card.cost}</div>
+                                <div className="card-content">
+                                    <div className="card-icon">{card.icon}</div>
+                                    <div className="card-name">{card.name}</div>
+                                    <div className="card-stats">
+                                        <span>❤️ {card.health}</span>
+                                        <span>⚔️ {card.damage}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {gameOver && (
+                        <div className="game-over">
+                            <h1 className={gameOver === 'victory' ? 'victory' : 'defeat'}>
+                                {gameOver === 'victory' ? '🎉 ניצחון! 🎉' : '💀 תבוסה 💀'}
+                            </h1>
+                            <p>
+                                {gameOver === 'victory' 
+                                    ? 'השמדת את המגדל המלכותי של האויב!'
+                                    : 'המגדל המלכותי שלך נהרס!'}
+                            </p>
+                            <button className="restart-btn" onClick={restartGame}>
+                                קרב חדש
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RoyalBattleArena />);
+    </script>
+</body>
+</html>
